@@ -27,8 +27,8 @@ disable iff: !rst_ni;
         jal_imm_at_at_fetch = { {12 {instr_rdata_i[31]}}, instr_rdata_i[19:12], instr_rdata_i[20], instr_rdata_i[30:21], 1'b0 } @ t_fetch,
         jalr_imm_at_t_fetch = { {20 {instr_rdata_i[31]}}, instr_rdata_i[31:20] } @ t_fetch,
         imm_at_t_fetch = (opcode == 7'h6F ? jal_imm_at_at_fetch : jalr_imm_at_t_fetch) @ t_fetch,
-        op2_at_t_fetch = (opcode == 7'h6F ? pc_if_at_t_fetch : rs1Data_at_t_fetch) @ t_fetch,
-        result_at_t_fetch = unsigned(signed(imm_at_t_fetch) + op2_at_t_fetch)[31:0] @ t_fetch;
+        op2_at_t_fetch = (opcode == 7'h6F ? pc_if_at_t_fetch : rs1Data_at_t_fetch) @ t_decode,
+        result_at_t_fetch = unsigned(signed(imm_at_t_fetch) + op2_at_t_fetch)[31:0] @ t_decode;
     assume:
         //conceptual state
         at t_fetch: conceptual_state;

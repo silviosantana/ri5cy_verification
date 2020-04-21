@@ -63,9 +63,9 @@ property_graph:
 					instr_lw, instr_lh, instr_lb, instr_lbu, instr_lbu, instr_sw, instr_sb, instr_sh,
 					instr_beq, instr_bne, instr_blt, instr_bge, instr_bltu, instr_bgeu,
 					instr_beq_nt, instr_bne_nt, instr_blt_nt, instr_bge_nt, instr_bltu_nt, instr_bgeu_nt,
-					instr_lui, instr_auipc, //instr_jal, instr_jalr;
+					instr_lui, instr_auipc, //instr_jal, instr_jalr,
 					instr_csrrw, instr_csrrs, instr_csrrc, instr_csrrwi, instr_csrrsi, instr_csrrci,
-					//instr_div, instr_divu, instr_rem, instr_remu;
+					//instr_div, instr_divu, instr_rem, instr_remu,
 					instr_mul, instr_mulh, instr_mulhsu, instr_mulhu;
 					//instr_fence, instr_ecall, instr_ebreak;
 	

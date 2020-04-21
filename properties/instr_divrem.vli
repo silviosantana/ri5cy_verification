@@ -39,7 +39,7 @@ disable iff: !rst_ni;
     for timepoints:
         t_fetch = t,
         t_decode = t_fetch + 1,
-        t_execute = t_decode+2..max_wait_dmem waits_for (ALU_READY),
+        t_execute = t_decode+2..32 waits_for ALU_READY,
         t_writeb = t_execute + 1;
     freeze:
         instr_imem_at_t_fetch = instr_rdata_i @ t_fetch,
@@ -82,6 +82,9 @@ disable iff: !rst_ni;
         at t_decode: instr_addr_o == (instr_addr_at_t_fetch + 32'd4)[31:0];
         at t_decode: !data_req_o;
         
+        during[t_decode+2,t_execute-1]: !ALU_READY;
+        at t_execute: ALU_READY;
+
         //IF to ID
         at t_decode: instr_rdata_id == instr_imem_at_t_fetch;
         at t_decode: pc_if == (pc_if_at_t_fetch + 32'd4)[31:0];
@@ -100,6 +103,12 @@ disable iff: !rst_ni;
         at t_decode+1: regfile_alu_we_fw == 1;
 
         right_hook: t_decode;
+
+        //local_determination_requirements: 
+        //    at t_execute: determined(ex_stage_i/alu_ready);
+
+        
+
 end macro;
 
 property instr_div;
