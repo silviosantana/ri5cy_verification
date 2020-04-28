@@ -129,8 +129,8 @@ disable iff: !rst_ni;
     for timepoints:
         t_fetch = t,
         t_decode = t_fetch + 1,
-        t_execute = t_decode + 1,
-        t_writeb = t_execute + 1;
+        t_execute = t_decode + 1;
+        //t_writeb = t_execute + 1;
     freeze:
         instr_imem_at_t_fetch = instr_rdata_i @ t_fetch,
         pc_if_at_t_fetch = pc_if @ t_fetch,
@@ -179,14 +179,23 @@ disable iff: !rst_ni;
         at t_execute: alu_operand_a_ex == op1Data_at_t_decode;
         at t_execute: alu_operand_b_ex == op2Data_at_t_decode;
         at t_execute: branch_decision == 0;
+        //at t_execute: branch_decision == 1;
 
         at t_decode: halt_if == 0;
         at t_execute: id_ready == 1;
         at t_execute: foreach r in 0..31: REGISTER(r) == regFile_at_t_decode[r]; end foreach;
         at t_execute: regfile_alu_we_fw == 0 && regfile_we_wb == 0;
         at t_execute: data_req_o == 0;
-        
+
         right_hook: t_decode;
+
+         local_determination_requirements:
+            at t_execute: determined(id_stage_i/registers_i/riscv_register_file_i/mem);
+        // at t_decode: determined(ALU_READY);
+        // at t_execute: determined(ALU_READY);
+        
+        
+
 end macro;
 
 property instr_beq_nt;
