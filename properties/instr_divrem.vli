@@ -39,7 +39,7 @@ disable iff: !rst_ni;
     for timepoints:
         t_fetch = t,
         t_decode = t_fetch + 1,
-        t_execute = t_decode+2..32 waits_for ALU_READY,
+        t_execute = t_decode+2..34 waits_for complete ALU_READY,
         t_writeb = t_execute + 1;
     freeze:
         instr_imem_at_t_fetch = instr_rdata_i @ t_fetch,
@@ -89,6 +89,8 @@ disable iff: !rst_ni;
         at t_decode: instr_rdata_id == instr_imem_at_t_fetch;
         at t_decode: pc_if == (pc_if_at_t_fetch + 32'd4)[31:0];
 
+        at t_decode+1: regfile_alu_we_fw == 1;
+
         //ID to EX
         at t_execute: alu_operator_ex == instr_divrem_operator(func3);
         at t_execute: alu_operand_a_ex == op2Data_at_t_decode;
@@ -99,8 +101,6 @@ disable iff: !rst_ni;
         at t_execute: regfile_alu_wdata_fw == res_at_t_decode;
         //WB to REGFILE
         at t_writeb: REGISTER(rd_at_t_fetch) == res_at_t_decode;
-
-        at t_decode+1: regfile_alu_we_fw == 1;
 
         right_hook: t_decode;
 
