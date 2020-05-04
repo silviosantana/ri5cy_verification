@@ -7,3 +7,8 @@ read_verilog -golden  -pragma_ignore {}  -version sv2009 {riscv_cs_registers.sv 
 read_verilog -golden  -pragma_ignore {}  -version sv2009 {riscv_ex_stage.sv riscv_alu_div.sv riscv_alu.sv riscv_mult.sv riscv_pmp.sv}
 read_verilog -golden  -pragma_ignore {}  -version sv2009 {riscv_load_store_unit.sv riscv_int_controller.sv riscv_controller.sv riscv_core.sv}
 elaborate -golden
+
+set_mode mv
+set_itl_flavor vli
+
+read_itl  { properties/*.vli}
