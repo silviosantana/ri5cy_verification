@@ -1,5 +1,3 @@
-macro unsigned max_wait_dmem := 5 ; end macro;
-
 //########################## LOAD ########################
 
 macro boolean IR_IMEM_LOAD (unsigned instr_imem, code3) :=
@@ -34,14 +32,18 @@ disable iff: !rst_ni;
         no_hwlp_case,
         no_unaligned_case,
         no_data_misaligned,
-        data_mem,
-        data_mem2,
+        //data_mem,
+        //data_mem2,
+        data_gnt,
+        //bounded_wait_dmem_gnt,
+        bounded_wait_dmem,
         instr_mem;
     for timepoints:
         t_fetch = t,
         t_decode = t_fetch + 1,
-        t_execute = t_decode+1..max_wait_dmem waits_for (data_gnt_i),
-        t_writeb = t_execute+1..max_wait_dmem waits_for (data_rvalid_i),
+        //t_execute = t_decode+1..max_wait_dmem waits_for complete (data_gnt_i),
+        t_execute = t_decode + 1,
+        t_writeb = t_execute+1..max_wait_dmem waits_for complete (data_rvalid_i),
         t_regfile = t_writeb + 1;
     freeze:
         instr_imem_at_t_fetch = instr_rdata_i @ t_fetch,
@@ -70,7 +72,7 @@ disable iff: !rst_ni;
         //output
         at t_fetch:    instr_req_o;
         at t_fetch:    !data_req_o;
-        at t_decode: data_req_o == 0;
+        at t_decode:   data_req_o == 0;
 
         //Trigger
         at t_fetch:	IR_IMEM_LOAD (instr_imem_at_t_fetch, code3);  
@@ -91,8 +93,10 @@ disable iff: !rst_ni;
         at t_decode+1: alu_operand_a_ex == op1Data_at_t_decode;
         at t_decode+1: alu_operand_b_ex == op2Data_at_t_decode;
         //Request to LSU
-        during[t_decode+1,t_execute]: data_addr_o == unsigned(signed(op1Data_at_t_decode) + signed(op2Data_at_t_decode))[31:0];
-        during[t_decode+1,t_execute]: data_req_o == 1 && data_we_o == 0;
+        //during[t_decode+1,t_execute]: data_addr_o == unsigned(signed(op1Data_at_t_decode) + signed(op2Data_at_t_decode))[31:0];
+        //during[t_decode+1,t_execute]: data_req_o == 1 && data_we_o == 0;
+        at t_execute: data_addr_o == unsigned(signed(op1Data_at_t_decode) + signed(op2Data_at_t_decode))[31:0];
+        at t_execute: data_req_o == 1 && data_we_o == 0;
         //LSU write back
         during[t_execute+1, t_writeb]: regfile_we_wb == 1 && regfile_waddr_fw_wb_o == rd_at_t_fetch;
         at t_regfile: REGISTER (rd_at_t_fetch) == instr_load_result(code3, prev(data_rdata_i), offset_at_t_decode);
@@ -148,7 +152,7 @@ disable iff: !rst_ni;
     for timepoints:
         t_fetch = t,
         t_decode = t_fetch + 1,
-        t_execute = t_decode+1..max_wait_dmem waits_for (data_gnt_i);
+        t_execute = t_decode+1..max_wait_dmem waits_for complete (data_gnt_i);
 
     freeze:
         instr_imem_at_t_fetch = instr_rdata_i @ t_fetch,

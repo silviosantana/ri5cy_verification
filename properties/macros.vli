@@ -7,8 +7,7 @@ macro boolean conceptual_state :=
     empty_prefetch_buffer;
 end macro;
 
-
-macro unsigned max_wait_imem := 1 ; end macro;
+macro unsigned max_wait_imem := 5 ; end macro;
 
 constraint bounded_wait_imem := disable iff: !rst_ni;
     if (instr_req_o)
@@ -18,9 +17,29 @@ constraint bounded_wait_imem := disable iff: !rst_ni;
     endif;
 end constraint;
 
+macro unsigned max_wait_dmem := 5 ; end macro;
+
+constraint bounded_wait_dmem := disable iff: !rst_ni;
+    if (data_gnt_i)
+        exists i in 1..(max_wait_dmem):
+            next(data_rvalid_i,i);
+        end exists;
+    endif;
+end constraint;
+
+constraint bounded_wait_dmem_gnt := disable iff: !rst_ni;
+    if (data_req_o)
+        exists i in 0..(max_wait_imem-1):
+            next(data_gnt_i,i);
+        end exists;
+    endif;
+end constraint;
+
 macro boolean NOP_instr :=
     instr_rdata_id == 23'd19;
 end macro;
+
+macro bit ALU_READY := ex_stage_i/alu_ready; end macro;
 
 constraint in_out_constraints :=
     irq_i == 0 &&
@@ -56,6 +75,11 @@ end constraint;
 
 constraint data_mem:=
     !data_req_o || (data_req_o && data_gnt_i && next(data_rvalid_i));
+end constraint;
+
+constraint data_gnt:=
+    !data_req_o && !data_gnt_i || (data_req_o && data_gnt_i);
+    //!data_gnt_i || data_gnt_i && !next(data_gnt_i,1);
 end constraint;
 
 constraint data_mem2:=
