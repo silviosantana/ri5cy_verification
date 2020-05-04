@@ -1,5 +1,3 @@
-
-
 completeness RI5CY;
 disable iff: !rst_ni;
 
@@ -24,6 +22,8 @@ determination_assumptions:
 	determined(debug_req_i);
 	determined(fetch_enable_i);
 	determined(boot_addr_i);
+
+	determined(ALU_READY);
 
 determination_requirements:
 	// imem interface

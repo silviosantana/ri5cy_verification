@@ -27,8 +27,6 @@ macro boolean IR_IMEM_DIVREM (unsigned instr_imem, func3, func7) :=
     instr_imem[31:25] == func7                                     //func7
 end macro;
 
-macro bit ALU_READY := ex_stage_i/alu_ready; end macro;
-
 macro property instr_divrem (unsigned func3, func7) :=
 disable iff: !rst_ni;
     dependencies:
