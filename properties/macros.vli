@@ -23,7 +23,7 @@ constraint bounded_wait_dmem := disable iff: !rst_ni;
     if (data_gnt_i)
         exists i in 1..(max_wait_dmem):
             next(data_rvalid_i,i);
-        end exists;
+        end exists
     endif;
 end constraint;
 
@@ -31,7 +31,7 @@ constraint bounded_wait_dmem_gnt := disable iff: !rst_ni;
     if (data_req_o)
         exists i in 0..(max_wait_imem-1):
             next(data_gnt_i,i);
-        end exists;
+        end exists
     endif;
 end constraint;
 
@@ -78,8 +78,7 @@ constraint data_mem:=
 end constraint;
 
 constraint data_gnt:=
-    !data_req_o && !data_gnt_i || (data_req_o && data_gnt_i);
-    //!data_gnt_i || data_gnt_i && !next(data_gnt_i,1);
+    !data_gnt_i || data_gnt_i && foreach i in 1 .. max_wait_dmem: !next(data_gnt_i,i); end foreach;
 end constraint;
 
 constraint data_mem2:=
