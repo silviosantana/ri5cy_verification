@@ -1,10 +1,6 @@
-macro boolean INSTR_ADD (unsigned instr_imem) :=
+macro boolean INSTR_ENC_R (unsigned instr_imem) :=
 	instr_imem[6:0] == 7'h33 &&                                    //opcode 
-	// (instr_imem[11:7] > 5'd0 && instr_imem[11:7] <= 5'd4) &&       //rd
-	instr_imem[14:12] == 3'h0 &&                                   //func3
-	// instr_imem[19:15] <= 5'd4 &&                                   //rs1
-	// instr_imem[24:20] <= 5'd4 &&                                   //rs2
-	instr_imem[31:25] == 7'h00                                     //func7
+	(instr_imem[31:25] == 7'b0000000 || instr_imem[31:25] == 7'b0100000)//func7
 end macro;
 
 // macro boolean INSTR_LW (unsigned instr_imem) :=
@@ -14,6 +10,17 @@ end macro;
 // 	instr_imem[19:15] <= 5'd4   	                             	//rs1
 // end macro;
 
+macro boolean INSTR_ENC_I_I (unsigned instr_imem) :=
+instr_imem[6:0] == 7'h13 &&                                     //opcode 
+(!(instr_imem[14:12] == 3'b001) || instr_imem[31:25] == 7'b0000000) &&
+(!(instr_imem[14:12] == 3'b101) || (instr_imem[31:25] == 7'b0000000 || instr_imem[31:25] == 7'b0100000))
+end macro;
+
+macro boolean INSTR_LOAD (unsigned instr_imem) :=
+	instr_imem[6:0] == 7'h03 &&                                     //opcode 
+	(instr_imem[14:12] == 3'b000 || instr_imem[14:12] == 3'b001 || instr_imem[14:12] == 3'b010 || instr_imem[14:12] == 3'b100 || instr_imem[14:12] == 3'b101)//func3
+end macro;
+
 macro boolean INSTR_LW (unsigned instr_imem) :=
 	instr_imem[6:0] == 7'h03 &&                                     //opcode 
 	instr_imem[11:7] == 5'd1 &&       	//rd
@@ -22,28 +29,23 @@ macro boolean INSTR_LW (unsigned instr_imem) :=
 	instr_imem[31:20] == 12'd0
 end macro;
 
-macro boolean INSTR_SW (unsigned instr_imem) :=
+macro boolean INSTR_ENC_S (unsigned instr_imem) :=
 	instr_imem[6:0] == 7'h23 &&                                     //opcode 
-	instr_imem[14:12] == 3'h2 &&                                	//func3
-	instr_imem[19:15] <= 5'd4 &&                                   	//rs1
-	instr_imem[24:20] <= 5'd4	                                   	//rs2
+	(instr_imem[14:12] == 3'b000 || instr_imem[14:12] == 3'b001 || instr_imem[14:12] == 3'b010)//func3
 end macro;
 
-macro boolean INSTR_BEQ (unsigned instr_imem) :=
+macro boolean INSTR_ENC_B (unsigned instr_imem) :=
 	instr_imem[6:0] == 7'h63 &&                                     //opcode 
-	instr_imem[14:12] == 3'h0 //&&                                	//func3
-	// instr_imem[19:15] <= 5'd4 &&                                   	//rs1
-	// instr_imem[24:20] <= 5'd4	                                   	//rs2
+	(instr_imem[14:12] == 3'b000 || instr_imem[14:12] == 3'b001 || instr_imem[14:12] == 3'b100 || 
+	instr_imem[14:12] == 3'b101 || instr_imem[14:12] == 3'b110 || instr_imem[14:12] == 3'b111)//func3
 end macro;
 
-macro boolean INSTR_JAL (unsigned instr_imem) :=
-	instr_imem[6:0] == 7'h6f //&&                                    //opcode 
-	// (instr_imem[11:7] > 5'd0 && instr_imem[11:7] <= 5'd4)	       //rd
+macro boolean INSTR_ENC_J (unsigned instr_imem) :=
+	instr_imem[6:0] == 7'h6f || instr_imem[6:0] == 7'h67 
 end macro;
 
-macro boolean INSTR_UI (unsigned instr_imem) :=
-	(instr_imem[6:0] == 7'h37 || instr_imem[6:0] == 7'h17) //&&      //opcode 
-	// (instr_imem[11:7] > 5'd0 && instr_imem[11:7] <= 5'd4)	       //rd
+macro boolean INSTR_ENC_U (unsigned instr_imem) :=
+	(instr_imem[6:0] == 7'h37 || instr_imem[6:0] == 7'h17) 
 end macro;
 
 constraint CPU2_allowed_instr :=
@@ -121,9 +123,9 @@ assume:
 	during [t_if_i1 + 1, t_done_i1]: cpu1/instr_rdata_i == 32'h13; //NOP's after t
 
     // same instruction for IUV
-	at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown));
-	at t: getEncType(cpu1/instr_rdata_i) == enc_r;
-	// at t: INSTR_ADD(cpu1/instr_rdata_i);
+	// at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown));
+	// at t: getEncType(cpu1/instr_rdata_i) == enc_r;
+	at t: INSTR_ENC_R(cpu1/instr_rdata_i);
 	at t: cpu1/instr_rdata_i == cpu2/instr_rdata_i;
 	at t: cpu1/instr_addr_o == cpu2/instr_addr_o;
 
@@ -189,8 +191,9 @@ property S2QED_ENC_I_I;
 		during [t_if_i1 + 1, t_done_i1]: cpu1/instr_rdata_i == 32'h13; //NOP's after t
 	
 		// same instruction for IUV
-		at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown));
-		at t: getEncType(cpu1/instr_rdata_i) == enc_i_i;
+		// at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown));
+		// at t: getEncType(cpu1/instr_rdata_i) == enc_i_i;
+		at t: INSTR_ENC_I_I(cpu1/instr_rdata_i);
 		at t: cpu1/instr_rdata_i == cpu2/instr_rdata_i;
 		at t: cpu1/instr_addr_o == cpu2/instr_addr_o;
 	
@@ -262,7 +265,8 @@ freeze:
     regfile_i1_at_t_done_i1 = cpu1/id_stage_i/registers_i/riscv_register_file_i/mem@t_done_i1,
 
 	//Destination Register
-	rd = getRdAddr(cpu1/instr_rdata_i)@t,
+	// rd = getRdAddr(cpu1/instr_rdata_i)@t,
+	rd = (((cpu1/instr_rdata_i) >> (7)) & 31)@t, 
 
 	//write back from ALU
 	alu_we_wb_at_t_wb_2 = cpu2/regfile_alu_we_fw@t_wb_i2,
@@ -283,9 +287,9 @@ assume:
 	during [t_if_i1 + 1, t_done_i1]: cpu1/instr_rdata_i == 32'h13; //NOP's after t
 
     // same instruction for IUV
-	at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
-	// at t: INSTR_LW(cpu1/instr_rdata_i);
-	at t: getEncType(cpu1/instr_rdata_i) == enc_i_l;
+	// at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
+	at t: INSTR_LOAD(cpu1/instr_rdata_i);
+	// at t: getEncType(cpu1/instr_rdata_i) == enc_i_l;
 	at t: cpu1/instr_rdata_i == cpu2/instr_rdata_i;
 	at t: cpu1/instr_addr_o == cpu2/instr_addr_o;
 
@@ -374,9 +378,9 @@ assume:
 	during [t_if_i1 + 1, t_done_i1]: cpu1/instr_rdata_i == 32'h13; //NOP's after t
 
     // same instruction for IUV
-	at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
-	// at t: INSTR_SW(cpu1/instr_rdata_i);
-	at t: getEncType(cpu1/instr_rdata_i) == enc_s;
+	// at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
+	at t: INSTR_ENC_S(cpu1/instr_rdata_i);
+	// at t: getEncType(cpu1/instr_rdata_i) == enc_s;
 	at t: cpu1/instr_rdata_i == cpu2/instr_rdata_i;
 	at t: cpu1/instr_addr_o == cpu2/instr_addr_o;
 
@@ -451,9 +455,9 @@ assume:
 	during [t_if_i1 + 1, t_done_i1]: cpu1/instr_rdata_i == 32'h13; //NOP's after t
 
     // same instruction for IUV
-	at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
-	// at t: INSTR_BEQ(cpu1/instr_rdata_i);
-	at t: getEncType(cpu1/instr_rdata_i) == enc_b;
+	// at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
+	at t: INSTR_ENC_B(cpu1/instr_rdata_i);
+	// at t: getEncType(cpu1/instr_rdata_i) == enc_b;
 	at t: cpu1/instr_rdata_i == cpu2/instr_rdata_i;
 	at t: cpu1/instr_addr_o == cpu2/instr_addr_o;
 
@@ -532,9 +536,9 @@ assume:
 	during [t_if_i1 + 1, t_done_i1]: cpu1/instr_rdata_i == 32'h13; //NOP's after t
 
     // same instruction for IUV
-	at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
-	// at t: INSTR_BEQ(cpu1/instr_rdata_i);
-	at t: getEncType(cpu1/instr_rdata_i) == enc_b;
+	// at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
+	at t: INSTR_ENC_B(cpu1/instr_rdata_i);
+	// at t: getEncType(cpu1/instr_rdata_i) == enc_b;
 	at t: cpu1/instr_rdata_i == cpu2/instr_rdata_i;
 	at t: cpu1/instr_addr_o == cpu2/instr_addr_o;
 
@@ -611,9 +615,9 @@ assume:
 	during [t_if_i1 + 1, t_done_i1]: cpu1/instr_rdata_i == 32'h13; //NOP's after t
 
     // same instruction for IUV
-	at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
-	// at t: INSTR_JAL(cpu1/instr_rdata_i);
-	at t: (getEncType(cpu1/instr_rdata_i) == enc_j || getEncType(cpu1/instr_rdata_i) == enc_i_j);
+	// at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
+	at t: INSTR_ENC_J(cpu1/instr_rdata_i);
+	// at t: (getEncType(cpu1/instr_rdata_i) == enc_j || getEncType(cpu1/instr_rdata_i) == enc_i_j);
 	at t: cpu1/instr_rdata_i == cpu2/instr_rdata_i;
 	at t: cpu1/instr_addr_o == cpu2/instr_addr_o;
 
@@ -688,9 +692,9 @@ assume:
 	during [t_if_i1 + 1, t_done_i1]: cpu1/instr_rdata_i == 32'h13; //NOP's after t
 
     // same instruction for IUV
-	at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
-	// at t: INSTR_UI(cpu1/instr_rdata_i);
-	at t: getEncType(cpu1/instr_rdata_i) == enc_u;
+	// at t: !((getInstrType(cpu1/instr_rdata_i) == instr_unknown)); 
+	at t: INSTR_ENC_U(cpu1/instr_rdata_i);
+	// at t: getEncType(cpu1/instr_rdata_i) == enc_u;
 	at t: cpu1/instr_rdata_i == cpu2/instr_rdata_i;
 	at t: cpu1/instr_addr_o == cpu2/instr_addr_o;
 
